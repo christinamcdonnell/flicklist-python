@@ -13,6 +13,11 @@ terrible_movies = [
     "Nine Lives"
 ]
 
+allowed_routes = [
+    "/login",
+    "/register"
+]
+
 class User(db.Model):
     """ Represents a user on our site """
     username = db.StringProperty(required = True)
@@ -31,6 +36,16 @@ class Handler(webapp2.RequestHandler):
     """ A base RequestHandler class for our app.
         The other handlers inherit form this one.
     """
+
+    def initialize(self, *a, **kw): # a request filter method
+        webapp2.RequestHandler.initialize(self, *a, **kw)
+        user_id = self.request.cookies.get(user_id)
+        if user_id:
+            user = User.get_by_id(int(user_id))
+            self.user = user #Im confused.  What exactly is "self" I guess it's global
+        elif self.request.path not in allowed_routes:
+                self.redirect('/login')
+
 
     def renderError(self, error_code):
         """ Sends an HTTP error code and a generic "oops!" message to the client. """
@@ -52,6 +67,8 @@ class Handler(webapp2.RequestHandler):
     def login_user(self, user):
         user_id = user.key().id()
         set_cookie('user_id', str(user_id))
+
+
 
 
 
