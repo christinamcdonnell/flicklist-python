@@ -43,6 +43,17 @@ class Handler(webapp2.RequestHandler):
         if user:
             return user.get()
 
+    def read_cookie(self, name):
+        return self.request.cookies.get(name)
+
+    def set_cookie(self, name, val):
+        self.response.headers.add('Set-Cookie', '%s=%s;(name, val))
+
+    def login_user(self, user):
+        user_id = user.key().id()
+        set_cookie('user_id', str(user_id))
+
+
 
 class Index(Handler):
     """ Handles requests coming in to '/' (the root of our site)
@@ -180,6 +191,7 @@ class Login(Handler):
         elif submitted_password != user.password:
             self.render_login_form(error = "Invalid password")
         else:
+            self.login_user(user)
             self.redirect("/?message=Welcome " + user.username + "!")
             return
 
