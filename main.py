@@ -39,7 +39,7 @@ class Handler(webapp2.RequestHandler):
 
     def initialize(self, *a, **kw): # a request filter method
         webapp2.RequestHandler.initialize(self, *a, **kw)
-        user_id = read_cookie('user_id')
+        user_id = self.read_cookie('user_id')
         if user_id:
             user = User.get_by_id(int(user_id))
             self.user = user #Im confused.  What exactly is "self" I guess it's global
@@ -65,7 +65,7 @@ class Handler(webapp2.RequestHandler):
 
     def login_user(self, user):
         user_id = user.key().id()
-        set_cookie('user_id', str(user_id))
+        self.set_cookie('user_id', str(user_id))
 
     def logout_user(self):
         self.set_cookie('user_id', '')
