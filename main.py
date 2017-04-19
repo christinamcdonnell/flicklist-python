@@ -2,7 +2,7 @@ import webapp2, cgi, jinja2, os, re
 from google.appengine.ext import db
 
 # set up jinja
-template_dir = os.path.join(os.path.dirname(__file__), "templates")
+template_dir = os.path.join(os.path.dirname(__file__),"templates")
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir))
 
 # a list of movies that nobody should be allowed to watch
@@ -39,13 +39,12 @@ class Handler(webapp2.RequestHandler):
 
     def initialize(self, *a, **kw): # a request filter method
         webapp2.RequestHandler.initialize(self, *a, **kw)
-        user_id = self.request.cookies.get(user_id)
+        user_id = read_cookie('user_id')
         if user_id:
             user = User.get_by_id(int(user_id))
             self.user = user #Im confused.  What exactly is "self" I guess it's global
         elif self.request.path not in allowed_routes:
-                self.redirect('/login')
-
+            self.redirect('/login')
 
     def renderError(self, error_code):
         """ Sends an HTTP error code and a generic "oops!" message to the client. """
@@ -62,15 +61,14 @@ class Handler(webapp2.RequestHandler):
         return self.request.cookies.get(name)
 
     def set_cookie(self, name, val):
-        self.response.headers.add('Set-Cookie', '%s=%s;(name, val))
+        self.response.headers.add('Set-Cookie','%s=%s; Path=/' %(name, val))
 
     def login_user(self, user):
         user_id = user.key().id()
         set_cookie('user_id', str(user_id))
 
-
-
-
+    def logout_user(self):
+        self.set_cookie('user_id', '')
 
 class Index(Handler):
     """ Handles requests coming in to '/' (the root of our site)
@@ -79,7 +77,6 @@ class Index(Handler):
 
     def get(self):
         """ Display the homepage (the list of unwatched movies) """
-
         # query for all the movies that have not yet been watched
         unwatched_movies = db.GqlQuery("SELECT * FROM Movie WHERE watched = False")
 
@@ -95,10 +92,8 @@ class AddMovie(Handler):
     """ Handles requests coming in to '/add'
         e.g. www.flicklist.com/add
     """
-
     def post(self):
         """ User wants to add a new movie to their list """
-
         new_movie_title = self.request.get("new-movie")
 
         # if the user typed nothing at all, redirect and yell at them
@@ -125,7 +120,6 @@ class AddMovie(Handler):
         content = t.render(movie = movie)
         self.response.write(content)
 
-
 class WatchedMovie(Handler):
     """ Handles requests coming in to '/watched-it'
         e.g. www.flicklist.com/watched-it
@@ -150,11 +144,9 @@ class WatchedMovie(Handler):
         content = t.render(movie = watched_movie)
         self.response.write(content)
 
-
 class MovieRatings(Handler):
     """ Handles requests coming in to '/ratings'
     """
-
     def get(self):
         """ Show a list of the movies the user has already watched """
 
@@ -167,7 +159,6 @@ class MovieRatings(Handler):
 
     def post(self):
         """ User wants to rate a movie """
-
         rating = self.request.get("rating")
         movie_id = self.request.get("movie")
 
@@ -211,7 +202,6 @@ class Login(Handler):
             self.login_user(user)
             self.redirect("/?message=Welcome " + user.username + "!")
             return
-
 
 class Register(Handler):
 
@@ -289,6 +279,10 @@ class Register(Handler):
             self.redirect('/')
             return
 
+class Logout(Handler):
+    def get(self):
+        self.logout_user()
+        self.redirect('/login')
 
 app = webapp2.WSGIApplication([
     ('/', Index),
@@ -296,5 +290,6 @@ app = webapp2.WSGIApplication([
     ('/watched-it', WatchedMovie),
     ('/ratings', MovieRatings),
     ('/login', Login),
-    ('/register', Register)
+    ('/register', Register),
+    ('/logout', Logout)
 ], debug=True)
